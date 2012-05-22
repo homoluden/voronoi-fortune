@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="376.927810668945" height="356.85840735">
+  <line x1="255.08154296875" y1="146.85840735" x2="148.22313561875" y2="30.0" style="stroke:black;stroke-width:1;"/>
+  <line x1="305.08154296875" y1="117.05840735" x2="148.22313561875" y2="30.0" style="stroke:black;stroke-width:1;"/>
+  <line x1="255.08154296875" y1="146.85840735" x2="305.08154296875" y2="117.05840735" style="stroke:black;stroke-width:1;"/>
+  <line x1="305.08154296875" y1="117.05840735" x2="265.08154296875" y2="316.85840735" style="stroke:black;stroke-width:1;"/>
+  <line x1="255.08154296875" y1="146.85840735" x2="265.08154296875" y2="316.85840735" style="stroke:black;stroke-width:1;"/>
+  <line x1="305.08154296875" y1="117.05840735" x2="255.08154296875" y2="146.85840735" style="stroke:black;stroke-width:1;"/>
+  <line x1="265.08154296875" y1="316.85840735" x2="148.22313561875" y2="30.0" style="stroke:black;stroke-width:1;"/>
+  <line x1="255.08154296875" y1="146.85840735" x2="148.22313561875" y2="30.0" style="stroke:black;stroke-width:1;"/>
+  <line x1="265.08154296875" y1="316.85840735" x2="255.08154296875" y2="146.85840735" style="stroke:black;stroke-width:1;"/>
+  <line x1="235.62377166748" y1="57.3648389295898" x2="336.927810668945" y2="227.338036866602" style="stroke:red;stroke-width:1;"/>
+  <line x1="30.0" y1="245.392602296289" x2="235.62377166748" y2="57.3648389295898" style="stroke:red;stroke-width:1;"/>
+  <line x1="30.0" y1="245.392602296289" x2="336.927810668945" y2="227.338036866602" style="stroke:red;stroke-width:1;"/>
+  <line x1="336.927810668945" y1="227.338036866602" x2="336.927810668945" y2="227.338044236355" style="stroke:red;stroke-width:1;"/>
+  <line x1="235.62377166748" y1="57.3648389295898" x2="336.927810668945" y2="-125.160798869533" style="stroke:red;stroke-width:1;"/>
+  <circle cx="235.62377166748" cy="57.3648389295898" r="2" stroke="black" stroke-width="1" fill="red"/>
+  <circle cx="336.927810668945" cy="227.338036866602" r="2" stroke="black" stroke-width="1" fill="red"/>
+  <circle cx="30.0" cy="245.392602296289" r="2" stroke="black" stroke-width="1" fill="red"/>
+  <circle cx="265.08154296875" cy="316.85840735" r="5" stroke="black" stroke-width="2" fill="lime"/>
+  <circle cx="255.08154296875" cy="146.85840735" r="5" stroke="black" stroke-width="2" fill="lime"/>
+  <circle cx="305.08154296875" cy="117.05840735" r="5" stroke="black" stroke-width="2" fill="lime"/>
+  <circle cx="148.22313561875" cy="30.0" r="5" stroke="black" stroke-width="2" fill="lime"/>
+</svg>
