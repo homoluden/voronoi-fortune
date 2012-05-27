@@ -189,8 +189,10 @@ class EventQueue
 					event.prev = i
 				else
 					event.prev = i.prev
+					i.prev.next = event
 					event.next = i
 				end
+				# debugger
 			end
 		end
 	end
@@ -298,9 +300,9 @@ class Breakpoint < Node
 	def value
 		b1, b2 = Site.find_intersection @right_arc, @left_arc
 		if (self.right?)
-			b1
-		else
 			b2
+		else
+			b1
 		end
 	end
 end
@@ -309,7 +311,6 @@ class Tree
 	attr_accessor :root
 
 	def add_arc value
-		# debugger
 		unless @root
 			@root = Arc.new value
 		else
@@ -323,6 +324,7 @@ class Tree
 			s1 = i
 			s2 = Arc.new value
 			if (s1.value.x > s2.value.x)
+				# debugger
 				bp1 = Breakpoint.new s1.value, s2.value, true
 				bp2 = Breakpoint.new s2.value, s1.value, false
 				s1b = Arc.new s1.value, bp2, nil, s1.name
@@ -341,6 +343,7 @@ class Tree
 				bp2.left = s1b
 				bp1.left = bp2
 			else
+				# debugger
 				bp1 = Breakpoint.new s2.value, s1.value, false
 				bp2 = Breakpoint.new s1.value, s2.value, true
 				s1b = Arc.new s1.value, nil, bp2, s1.name
@@ -364,16 +367,19 @@ class Tree
 	end
 
 	def draw_beachline root, c
+		# debugger
   		return unless root
   		draw_beachline root.left, c
   		# puts "#{root.name}" if (root.name)
   		if (root.class == Arc)
-  			draw_parabola Coord.new((root.left_point) ? root.left_point.value.x : 0, @@sweepline), Coord.new((root.right_point) ? root.right_point.value.x : 0, @@sweepline), root.value.center, c
-  		end
-  		draw_beachline root.right, c
-  		if (root.class == Breakpoint)
+  			# debugger
+  			draw_parabola Coord.new((root.left_point) ? root.left_point.value.x : 0, @@sweepline), Coord.new((root.right_point) ? root.right_point.value.x : 500, @@sweepline), root.value.center, c
+  		elsif (root.class == Breakpoint)
+  			# debugger
+  			puts "#{root.name}[#{root.value.x},#{root.value.y}]"
   			draw_point root.value, c
   		end
+  		draw_beachline root.right, c
 	end
 
 	def postorder root
@@ -417,10 +423,13 @@ class MVector
 end
 
 def draw_point a, c
-	c.circle a.x, a.y, a.x - 3, a.y
+	c.stroke "black"
+	c.stroke_width 1
+	c.circle a.x, a.y, a.x - 5, a.y
 end
 
 def draw_parabola a, b, c, dr # a, b – directrix points, c – focus, dr – Magick::Draw
+	# debugger
 	ab = MVector.new a, b
 	ac = MVector.new a, c
 	bc = MVector.new b, c
@@ -437,21 +446,22 @@ def draw_parabola a, b, c, dr # a, b – directrix points, c – focus, dr – M
 	n = ( ( g.x - f.x ) * ac.x + ( g.y - f.y ) * ac.y ) / ( bc.y * ac.x - bc.x * ac.y )
 	h = Coord.new g.x - bc.y * n, g.y + bc.x * n
 
+	dr.fill "black"
+	dr.stroke "black"
+	dr.stroke_width 1
+
+	draw_point c, dr
+
 	dr.fill "transparent"
+	dr.stroke "red"
+	dr.stroke_width 3
 
 	dr.path "M#{d.x},#{d.y} Q#{h.x},#{h.y} #{e.x},#{e.y}"
 end
 
 def main i=1
-	sites = [Site.new(300, 50), Site.new(350, 150), Site.new(250, 300)]
-	# sites.sort! do |a, b|
-	# 	a.y <=> b.y
-	# end
-	# # debugger
-	# @@sweepline = 450
-	# sites.each do |s|
-	# 	s.draw
-	# end
+	# sites = [Site.new(200, 50), Site.new(350, 150), Site.new(250, 300)]
+	sites = [Site.new(40+200, 30+200), Site.new(70+200, 50+200), Site.new(20+200, 40+200)]
 	eq = EventQueue.new
 	t = Tree.new
 	sites.each do |s|
@@ -465,12 +475,13 @@ def main i=1
 		# debugger
 	end while eq.current
 	t.print t.root, 0
-	@@sweepline = 500
-	d = Magick::Draw.new
-	t.draw_beachline t.root, d
-	d.draw Site.canvas
-	Site.save "jpeg:image1"
-	# `open image1`
+	@@sweepline += 1
+	# d = Magick::Draw.new
+	# # debugger 
+	# t.draw_beachline t.root, d
+	# canv = Site.canvas
+	# d.draw canv
+	# canv.write "jpeg:image"
 end
 
 
