@@ -346,21 +346,21 @@ class Tree
 				# debugger
 				bp1 = Breakpoint.new s2.value, s1.value, false
 				bp2 = Breakpoint.new s1.value, s2.value, true
-				s1b = Arc.new s1.value, nil, bp2, s1.name
+				s1b = Arc.new s1.value, nil, bp1, s1.name
 				s2.right_point = bp2
 				s2.left_point = bp1
-				s1.right_point = bp1
-				s1.left_point = nil
+				s1.right_point = nil
+				s1.left_point = bp2
 				if (s1.parent)
-					s1.parent.left = bp1 if (s1.parent.left == s1)
-					s1.parent.right = bp1 if (s1.parent.right == s2)
+					s1.parent.left = bp2 if (s1.parent.left == s1)
+					s1.parent.right = bp2 if (s1.parent.right == s2)
 				else
-					self.root = bp1
+					self.root = bp2
 				end
-				bp1.left = s1
-				bp2.left = s2
-				bp2.right = s1b
-				bp1.right = bp2
+				bp1.left = s1b
+				bp1.right = s2
+				bp2.left = bp1
+				bp2.right = s1
 			end
 
 		end
