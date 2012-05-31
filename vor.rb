@@ -608,6 +608,8 @@ def main i=1
 	d.path "M0,#{@@sweepline} h500"
 	d.draw Site.canvas
 	Site.save "jpeg:image1"
+	`git add image1`
+	`git commit -m "image"`
 	`open image1`
 end
 
