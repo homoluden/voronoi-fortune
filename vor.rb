@@ -189,7 +189,7 @@ class EventQueue
 					i.next = event
 					event.prev = i
 				else
-					# debugger
+					debugger if i.prev == nil
 					# return if event.x.rationalize == i.x.rationalize && event.y.rationalize == i.y.rationalize
 					event.prev = i.prev
 					i.prev.next = event
@@ -329,23 +329,24 @@ end
 class Tree
 	attr_accessor :root
 
-	def rm_arc arc
+	def rm_arc event
+		arc = event.mid
 		a = arc_array
 		i = a.index arc
 		# left_arc = arc.left_point.left_arc
 		# right_arc = arc.right_point.right_arc
-		debugger
+		debugger if i
 		left_arc = a[ i - 1 ]
 		right_arc = a[ i + 1 ]
 		# debugger
 		new_point = Breakpoint.new left_arc.value, right_arc.value, (left_arc.value.x > right_arc.value.x) ? true : false
-		new_point.left = arc.left_point.left
-		new_point.right = arc.right_point.right
+		new_point.left = arc.left_point.left if (arc.left_point)
+		new_point.right = arc.right_point.right if (arc.right_point)
 		left_arc.right_point = new_point
 		right_arc.left_point = new_point
 		@root = new_point
-		debugger
-		self.print @root, 0
+		# debugger
+		# self.print @root, 0
 	end
 
 	def add_arc value
@@ -369,7 +370,6 @@ class Tree
 				s1b = Arc.new s1.value, s1.left_point, bp1, s1.name
 				s2.right_point = bp2
 				s2.left_point = bp1
-				s1.right_point = nil
 				s1.left_point = bp2
 				if (s1.parent)
 					# debugger
@@ -389,7 +389,6 @@ class Tree
 				s1b = Arc.new s1.value, s1.left_point, bp1, s1.name
 				s2.right_point = bp2
 				s2.left_point = bp1
-				s1.right_point = nil
 				s1.left_point = bp2
 				if (s1.parent)
 					# debugger
@@ -413,7 +412,7 @@ class Tree
   		draw_beachline root.left, c
   		# puts "#{root.name}" if (root.name)
   		if (root.class == Arc)
-  			debugger if root.name == "A2"
+  			# debugger if root.name == "A3"
   			draw_parabola Coord.new((root.left_point) ? root.left_point.value.x : -10, @@sweepline), Coord.new((root.right_point) ? root.right_point.value.x : 510, @@sweepline), root.value.center, c
   			c.stroke_width 1
   			c.text root.value.center.x, root.value.center.y - 20, root.name
@@ -444,7 +443,9 @@ class Tree
 		print r.right, l + 1
 		s = ""
 		l.times { s += " " }
-		puts "#{s}#{r.name}"
+		m = ""
+		m = "[#{r.left_point.name if (r.left_point)},#{r.right_point.name if (r.right_point)}]" if (r.class == Arc)
+		puts "#{s}#{r.name}" + m
 		print r.left, l + 1
 	end
 
@@ -464,25 +465,27 @@ class Tree
   		find_arc_inorder root.right, a
 	end
 
+	def remove_circle_events eq
+		i = eq.current
+		begin
+			if i.class == CircleEvent
+				eq.rm_event i
+			end
+			i = i.next
+		end while i
+	end
+
 	def check_circle eq, arc
-		# debugger
+		# remove_circle_events eq
 		a = arc_array
-		i = a.index arc
-		return if i < 2
-		ll = [ [ a[ i - 2 ], a[ i - 1 ], a[ i ] ] ]
-		str = []
-		ll[0].each {|s| str << s.name }
-		str.sort!
-		if (a.length > i + 2)
-			ll << [ a[ i ], a[ i + 1 ], a[ i + 2 ] ] 
-			str1 = []
-			ll[1].each {|s| str1 << s.name }
-			str1.sort!
-			# return if str == str1
-		end
-		ll.each do |c|
-			next if (c[0].name == c[2].name)
-			puts "#{c[0].name} #{c[1].name} #{c[2].name}"
+		while a.take(3).length > 2
+			# debugger
+			c = a.take 3
+			if (c[0].name == c[2].name)
+				a.delete_at 0
+				next
+			end
+			# puts "#{c[0].name} #{c[1].name} #{c[2].name}"
 			x1 = c[0].value.x.to_f
 			y1 = c[0].value.y.to_f
 			x2 = c[1].value.x.to_f
@@ -503,8 +506,9 @@ class Tree
 			d.fill 'transparent'
 			d.circle x0, y0, x0, y0 + r
 			d.draw Site.canvas
-			debugger
-			eq.add_event CircleEvent.new c[0], c[1], c[2], Coord.new(x0, y0 + r)
+			a.delete_at 0
+			# debugger
+			# eq.add_event CircleEvent.new c[0], c[1], c[2], Coord.new(x0, y0 + r)
 		end
 		# debugger
 	end
@@ -584,11 +588,13 @@ def main i=1
 		if (p.class == SiteEvent)
 			new_arc = t.add_arc p.site
 			t.check_circle eq, new_arc
+			t.print t.root, 0
+			puts "================="
 		elsif (p.class == CircleEvent)
 			d = Magick::Draw.new
 			draw_point p.coord, d
 			d.draw Site.canvas
-			t.rm_arc p.mid
+			t.rm_arc p
 		end
 		# debugger
 	end while eq.current
@@ -599,9 +605,9 @@ def main i=1
 	d = Magick::Draw.new
 	# debugger 
 	t.draw_beachline t.root, d
-	canv = Site.canvas
-	d.draw canv
-	canv.write "jpeg:image1"
+	d.path "M0,#{@@sweepline} h500"
+	d.draw Site.canvas
+	Site.save "jpeg:image1"
 	`open image1`
 end
 
