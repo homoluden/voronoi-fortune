@@ -35,7 +35,7 @@ class Vertex
 end
 
 class Halfedge
-	attr_accessor :vertex, :next, :prev, :site, :twin
+	attr_accessor :vertex, :next, :prev, :site, :twin, :end
 	
 	def initialize vertex
 		@vertex = vertex
@@ -136,7 +136,7 @@ class Site
 	end
 
 	def Site.find_intersection s1, s2
-		# debugger
+		debugger if s1.class == Coord
 		s1.find_parabola
 		s2.find_parabola
 		a = s1.a - s2.a
@@ -316,7 +316,12 @@ class Breakpoint < Node
 		@type
 	end
 
+	def change_type type
+		@type = type
+	end
+
 	def value
+		# debugger if self.name == "B2"
 		b1, b2 = Site.find_intersection @right_arc, @left_arc
 		if (self.right?)
 			b2
@@ -335,16 +340,46 @@ class Tree
 		i = a.index arc
 		# left_arc = arc.left_point.left_arc
 		# right_arc = arc.right_point.right_arc
-		debugger if i
+		left_point = arc.left_point
+		right_point = arc.right_point
 		left_arc = a[ i - 1 ]
 		right_arc = a[ i + 1 ]
 		# debugger
-		new_point = Breakpoint.new left_arc.value, right_arc.value, (left_arc.value.x > right_arc.value.x) ? true : false
-		new_point.left = arc.left_point.left if (arc.left_point)
-		new_point.right = arc.right_point.right if (arc.right_point)
-		left_arc.right_point = new_point
-		right_arc.left_point = new_point
-		@root = new_point
+		# new_point = Breakpoint.new left_arc.value, right_arc.value, (left_arc.value.x > right_arc.value.x) ? true : false
+		if (left_point == arc.parent)
+			if (left_point.left == arc)
+				right_point.parent.left = right_point.right if right_point.parent.left == right_point
+				right_point.parent.right = right_point.right if right_point.parent.right == right_point
+			elsif (right_point.right == arc)
+				right_point.parent.left = right_point.left if right_point.parent.left == right_point
+				right_point.parent.right = right_point.left if right_point.parent.right == right_point
+			end
+			left_arc.right_point = left_point
+			right_arc.left_point = left_point
+			# debugger
+			left_point.right_arc = right_arc.value
+			left_point.change_type !left_point.right?
+			# arc.left_point.parent.right = new_point
+			# new_point.left = left_arc
+			# new_point.right = arc.left_point.right
+			# arc.right_point.parent.left = right_arc
+			# left_arc.right_point = new_point
+			# right_arc.left_point = new_point
+		elsif (right_point == arc.parent)
+			# debugger
+			if (right_point.left == arc)
+				right_point.parent.left = right_point.right if right_point.parent.left == right_point
+				right_point.parent.right = right_point.right if right_point.parent.right == right_point
+			elsif (right_point.right == arc)
+				right_point.parent.left = right_point.left if right_point.parent.left == right_point
+				right_point.parent.right = right_point.left if right_point.parent.right == right_point
+			end
+			left_arc.right_point = left_point
+			right_arc.left_point = left_point
+			# debugger
+			left_point.right_arc = right_arc.value
+			left_point.change_type !left_point.right?
+		end
 		# debugger
 		# self.print @root, 0
 	end
@@ -407,12 +442,11 @@ class Tree
 	end
 
 	def draw_beachline root, c
-		# debugger
   		return unless root
   		draw_beachline root.left, c
   		# puts "#{root.name}" if (root.name)
   		if (root.class == Arc)
-  			# debugger if root.name == "A3"
+  			# debugger if root.name == "A4"
   			draw_parabola Coord.new((root.left_point) ? root.left_point.value.x : -10, @@sweepline), Coord.new((root.right_point) ? root.right_point.value.x : 510, @@sweepline), root.value.center, c
   			c.stroke_width 1
   			c.text root.value.center.x, root.value.center.y - 20, root.name
@@ -467,25 +501,32 @@ class Tree
 
 	def remove_circle_events eq
 		i = eq.current
-		begin
-			if i.class == CircleEvent
-				eq.rm_event i
-			end
-			i = i.next
-		end while i
+		if (i)
+			begin
+				if i.class == CircleEvent
+					eq.rm_event i
+				end
+				i = i.next
+			end while i
+		end
 	end
 
-	def check_circle eq, arc
-		# remove_circle_events eq
+	def check_circle eq
+		remove_circle_events eq
 		a = arc_array
+		already_added_events = []
 		while a.take(3).length > 2
 			# debugger
 			c = a.take 3
-			if (c[0].name == c[2].name)
+			ll = c.each.collect {|s| s.name}
+			ll.sort!
+			if (c[0].name == c[2].name || already_added_events.index(ll) || @@last_added == c[1].name)
+				# debugger
+				# debugger if (a[0].name == "A1")
 				a.delete_at 0
 				next
 			end
-			# puts "#{c[0].name} #{c[1].name} #{c[2].name}"
+			puts "#{c[0].name} #{c[1].name} #{c[2].name}"
 			x1 = c[0].value.x.to_f
 			y1 = c[0].value.y.to_f
 			x2 = c[1].value.x.to_f
@@ -498,7 +539,6 @@ class Tree
 			x0 = - x[0, 0].to_f / 2
 			y0 = - x[1, 0].to_f / 2
 			r = Math.sqrt( x[0, 0].to_f ** 2 + x[1, 0].to_f ** 2 - 4 * x[2, 0].to_f ) / 2
-			a.delete_at 0
 			d = Magick::Draw.new
 			d.stroke 'blue'
 			d.stroke_width 3
@@ -506,9 +546,12 @@ class Tree
 			d.fill 'transparent'
 			d.circle x0, y0, x0, y0 + r
 			d.draw Site.canvas
+			# debugger if (a[0].name == "A1")
 			a.delete_at 0
-			# debugger
-			# eq.add_event CircleEvent.new c[0], c[1], c[2], Coord.new(x0, y0 + r)
+			# debugger if c[1].name == "A3"
+			# puts "#{@@sweepline < y0 + r}"
+			eq.add_event CircleEvent.new c[0], c[1], c[2], Coord.new(x0, y0 + r) if (@@sweepline < y0 + r - 1e-8)
+			already_added_events << ll
 		end
 		# debugger
 	end
@@ -582,34 +625,32 @@ def main i=1
 		eq.add_event SiteEvent.new s
 	end
 	# debugger
+	@@halfedges = []
 	begin
 		p = eq.pop
 		@@sweepline = p.y
 		if (p.class == SiteEvent)
 			new_arc = t.add_arc p.site
-			t.check_circle eq, new_arc
-			t.print t.root, 0
-			puts "================="
+			@@last_added = new_arc.name
+			# t.print t.root, 0
+			# puts "================="
+			t.check_circle eq
+			# puts "_________________"
 		elsif (p.class == CircleEvent)
-			d = Magick::Draw.new
-			draw_point p.coord, d
-			d.draw Site.canvas
 			t.rm_arc p
+			t.check_circle eq
+			# t.print t.root, 0
+			# puts "================="
 		end
 		# debugger
 	end while eq.current
 	@@sweepline += 1
-	# sites.each {|s| s.draw}
-	# Site.save "jpeg:image1"
-	# t.inorder t.root
 	d = Magick::Draw.new
 	# debugger 
 	t.draw_beachline t.root, d
 	d.path "M0,#{@@sweepline} h500"
 	d.draw Site.canvas
 	Site.save "jpeg:image1"
-	`git add image1`
-	`git commit -m "image"`
 	`open image1`
 end
 
