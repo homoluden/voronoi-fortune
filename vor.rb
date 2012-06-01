@@ -136,33 +136,31 @@ class Site
 	end
 
 	def Site.find_intersection s1, s2
-		debugger if s1.class == Coord
 		s1.find_parabola
 		s2.find_parabola
-		a = s1.a - s2.a
-		b = s1.b - s2.b
-		c = s1.c - s2.c
-		x1 = ( - b + Math.sqrt( b ** 2 - 4 * a * c ) ) / ( 2 * a )
-		y1 = s1.a * (x1 ** 2) + s1.b * x1 + s1.c
-		x2 = ( - b - Math.sqrt( b ** 2 - 4 * a * c ) ) / ( 2 * a )
-		y2 = s2.a * (x2 ** 2) + s2.b * x2 + s2.c
-		# debugger
-		# l = Magick::Draw.new
-		# l.fill '#000000'
-		# l.circle x1, y1, x1 - 3, y1
-		# l.circle x2, y2, x2 - 3, y2
-
-		# l.fill 'transparent'
-		# l.stroke "rgb(#{Random.new.rand(0..255)},#{Random.new.rand(0..255)},#{Random.new.rand(0..255)})"
-		# l.stroke_width 1
-		# l.stroke_dasharray 10, 10
-		# l.circle x1, y1, s1.x, s1.y
-		# l.circle x2, y2, s1.x, s1.y
-		# l.draw @@canvas
-		if (x1 < x2)
-			[Coord.new(x1,y1), Coord.new(x2,y2)]
+		if s1.y == @@sweepline
+			x1 = s1.x
+			y1 = s2.a * (x1 ** 2) + s2.b * x1 + s2.c
+			ret = Coord.new(x1,y1)
+			[ret, ret]
+		elsif s2.y == @@sweepline
+			x1 = s2.x
+			y1 = s1.a * (x1 ** 2) + s1.b * x1 + s1.c
+			ret = Coord.new(x1,y1)
+			[ret, ret]
 		else
-			[Coord.new(x2,y2), Coord.new(x1,y1)]
+			a = s1.a - s2.a
+			b = s1.b - s2.b
+			c = s1.c - s2.c
+			x1 = ( - b + Math.sqrt( b ** 2 - 4 * a * c ) ) / ( 2 * a )
+			y1 = s1.a * (x1 ** 2) + s1.b * x1 + s1.c
+			x2 = ( - b - Math.sqrt( b ** 2 - 4 * a * c ) ) / ( 2 * a )
+			y2 = s2.a * (x2 ** 2) + s2.b * x2 + s2.c
+			if (x1 < x2)
+				[Coord.new(x1,y1), Coord.new(x2,y2)]
+			else
+				[Coord.new(x2,y2), Coord.new(x1,y1)]
+			end
 		end
 	end
 end
@@ -236,13 +234,14 @@ end
 
 
 class CircleEvent < Event
-	attr_accessor :left, :mid, :right, :coord
+	attr_accessor :left, :mid, :right, :coord, :center
 
-	def initialize left, mid, right, coord
+	def initialize left, mid, right, coord, center
 		@left = left
 		@mid = mid
 		@right = right
 		@coord = coord
+		@center = center
 	end
 
 	def x
@@ -297,7 +296,7 @@ class Arc < Node
 end
 
 class Breakpoint < Node
-	attr_accessor :right_arc, :left_arc
+	attr_accessor :right_arc, :left_arc, :halfedge
 	attr_reader :name
 
 	def initialize left, right, type, name = nil
@@ -310,6 +309,7 @@ class Breakpoint < Node
 		else
 			@name = name
 		end
+		@halfedge = Halfedge.new self.value
 	end
 
 	def right?
@@ -321,11 +321,12 @@ class Breakpoint < Node
 	end
 
 	def value
-		# debugger if self.name == "B2"
 		b1, b2 = Site.find_intersection @right_arc, @left_arc
 		if (self.right?)
+			@halfedge.end = b2 if @halfedge
 			b2
 		else
+			@halfedge.end = b1 if @halfedge
 			b1
 		end
 	end
@@ -333,6 +334,10 @@ end
 
 class Tree
 	attr_accessor :root
+
+	def finish_edges
+		inorder @root
+	end
 
 	def rm_arc event
 		arc = event.mid
@@ -342,46 +347,49 @@ class Tree
 		# right_arc = arc.right_point.right_arc
 		left_point = arc.left_point
 		right_point = arc.right_point
+		left_point.halfedge.end = event.center
+		right_point.halfedge.end = event.center
 		left_arc = a[ i - 1 ]
 		right_arc = a[ i + 1 ]
-		# debugger
-		# new_point = Breakpoint.new left_arc.value, right_arc.value, (left_arc.value.x > right_arc.value.x) ? true : false
-		if (left_point == arc.parent)
-			if (left_point.left == arc)
-				right_point.parent.left = right_point.right if right_point.parent.left == right_point
-				right_point.parent.right = right_point.right if right_point.parent.right == right_point
-			elsif (right_point.right == arc)
-				right_point.parent.left = right_point.left if right_point.parent.left == right_point
-				right_point.parent.right = right_point.left if right_point.parent.right == right_point
+		if (left_arc.value.halfedge)
+			i = left_arc.value.halfedge
+			while i.next
+				i = i.next
 			end
+			# debugger
+			i.next = left_point.halfedge
+		else
+			# debugger
+			left_arc.value.halfedge = left_point.halfedge
+		end
+		if (right_arc.value.halfedge)
+			i = right_arc.value.halfedge
+			while i.next
+				i = i.next
+			end
+			# debugger
+			i.next = right_point.halfedge
+		else
+			# debugger
+			right_arc.value.halfedge = right_point.halfedge
+		end
+		# debugger
+		left_point.halfedge = Halfedge.new event.center
+		if (left_point == arc.parent)
+			left_point.parent.left = right_point.right if right_point.parent.left == right_point
+			left_point.parent.right = right_point.right if right_point.parent.right == right_point
 			left_arc.right_point = left_point
 			right_arc.left_point = left_point
-			# debugger
 			left_point.right_arc = right_arc.value
 			left_point.change_type !left_point.right?
-			# arc.left_point.parent.right = new_point
-			# new_point.left = left_arc
-			# new_point.right = arc.left_point.right
-			# arc.right_point.parent.left = right_arc
-			# left_arc.right_point = new_point
-			# right_arc.left_point = new_point
 		elsif (right_point == arc.parent)
-			# debugger
-			if (right_point.left == arc)
-				right_point.parent.left = right_point.right if right_point.parent.left == right_point
-				right_point.parent.right = right_point.right if right_point.parent.right == right_point
-			elsif (right_point.right == arc)
-				right_point.parent.left = right_point.left if right_point.parent.left == right_point
-				right_point.parent.right = right_point.left if right_point.parent.right == right_point
-			end
+			right_point.parent.left = right_point.right if right_point.parent.left == right_point
+			right_point.parent.right = right_point.right if right_point.parent.right == right_point
 			left_arc.right_point = left_point
 			right_arc.left_point = left_point
-			# debugger
 			left_point.right_arc = right_arc.value
 			left_point.change_type !left_point.right?
 		end
-		# debugger
-		# self.print @root, 0
 	end
 
 	def add_arc value
@@ -459,9 +467,41 @@ class Tree
 	end
 
 	def inorder root
+		# debugger
 		return unless root
   		inorder root.left
-  		puts "#{root.name}" if (root.name)
+  		if (root.class == Breakpoint)
+  			puts root.name
+  			root.value
+			left_arc = root.left_arc
+			right_arc = root.right_arc
+			if (left_arc.halfedge)
+				i = left_arc.halfedge
+				if (i.next)
+					begin
+						i = i.next
+					end while i
+				end
+				debugger if i == root.halfedge
+				i.next = root.halfedge
+			else
+				# debugger
+				left_arc.halfedge = root.halfedge
+			end
+			if (right_arc.halfedge)
+				i = right_arc.halfedge
+				if (i.next)
+					begin
+						i = i.next
+					end while i
+				end
+				debugger if i == root.halfedge
+				i.next = root.halfedge
+			else
+				# debugger
+				right_arc.halfedge = root.halfedge
+			end
+  		end
   		inorder root.right
   	end	
 
@@ -539,18 +579,16 @@ class Tree
 			x0 = - x[0, 0].to_f / 2
 			y0 = - x[1, 0].to_f / 2
 			r = Math.sqrt( x[0, 0].to_f ** 2 + x[1, 0].to_f ** 2 - 4 * x[2, 0].to_f ) / 2
-			d = Magick::Draw.new
-			d.stroke 'blue'
-			d.stroke_width 3
-			d.stroke_dasharray 10, 10
-			d.fill 'transparent'
-			d.circle x0, y0, x0, y0 + r
-			d.draw Site.canvas
+			# d = Magick::Draw.new
+			# d.stroke 'blue'
+			# d.stroke_width 3
+			# d.stroke_dasharray 10, 10
+			# d.fill 'transparent'
+			# d.circle x0, y0, x0, y0 + r
+			# d.draw Site.canvas
 			# debugger if (a[0].name == "A1")
 			a.delete_at 0
-			# debugger if c[1].name == "A3"
-			# puts "#{@@sweepline < y0 + r}"
-			eq.add_event CircleEvent.new c[0], c[1], c[2], Coord.new(x0, y0 + r) if (@@sweepline < y0 + r - 1e-8)
+			eq.add_event CircleEvent.new c[0], c[1], c[2], Coord.new(x0, y0 + r), Coord.new(x0, y0) if (@@sweepline < y0 + r - 1e-8)
 			already_added_events << ll
 		end
 		# debugger
@@ -644,11 +682,26 @@ def main i=1
 		end
 		# debugger
 	end while eq.current
-	@@sweepline += 1
+	@@sweepline = 500
+	t.finish_edges
 	d = Magick::Draw.new
 	# debugger 
 	t.draw_beachline t.root, d
 	d.path "M0,#{@@sweepline} h500"
+	sites.each do |s|
+		# debugger
+		if (s.halfedge)
+			debugger
+			l = s.halfedge
+			d.path "M#{s.halfedge.vertex.x},#{s.halfedge.vertex.y} L#{s.halfedge.end.x},#{s.halfedge.end.y}"
+			while l.next
+				l = l.next
+				debugger if l == l.next
+				d.path "M#{l.vertex.x},#{l.vertex.y} L#{l.end.x},#{l.end.y}"
+				puts "M#{l.vertex.x},#{l.vertex.y} L#{l.end.x},#{l.end.y}"
+			end
+		end
+	end
 	d.draw Site.canvas
 	Site.save "jpeg:image1"
 	`open image1`
