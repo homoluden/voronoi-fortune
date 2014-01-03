@@ -1,5 +1,7 @@
 require 'matrix'
 
+require 'wpf'
+
 @@sweepline = 0
 
 class Coord
@@ -101,6 +103,43 @@ class Site
 			end
 		end
 	end
+	
+	def draw
+		vertices = []
+		if (@halfedge)
+				he = @halfedge
+				#path = "M#{he.vertex.x}, #{he.vertex.y} "
+				vertices << he.vertex
+				puts he
+				
+				he = he.next
+				while he != @halfedge && he.next != he
+						
+						puts he
+						
+						#path += "L#{he.vertex.x}, #{he.vertex.y} "
+						vertices << he.vertex
+						he = he.next
+						
+				end
+				#path += "z"
+				# @halfedge.vertex.x, @halfedge.vertex.y, @halfedge.next.vertex.x, @halfedge.next.vertex.y, @halfedge.next.next.vertex.x, @halfedge.next.next.vertex.y, @halfedge.next.next.next.vertex.x, @halfedge.next.next.next.vertex.y
+				#g.path path
+				
+				puts "Vertices: #{vertices}"
+				
+				poly = create_polygon vertices
+							
+				Canvas.set_left poly, center.x
+				Canvas.set_top poly, center.y
+
+				@@canvas.children.add poly
+		end
+
+		circle = create_circle center, 5
+		
+		@@canvas.children.add circle
+	end
 end
 
 class EventQueue
@@ -108,6 +147,7 @@ class EventQueue
 	attr_accessor :current
 
 	def add_event event
+		return unless event
 		# debugger
 		if @current == nil
 			self.current = event
@@ -125,7 +165,7 @@ class EventQueue
 					i.next = event
 					event.prev = i
 				else
-					debugger if i.prev == nil
+					#debugger if i.prev == nil
 					# return if event.x.rationalize == i.x.rationalize && event.y.rationalize == i.y.rationalize
 					event.prev = i.prev
 					i.prev.next = event
@@ -387,23 +427,6 @@ class Tree
 		end
 	end
 
-	def draw_beachline root, c
-  		return unless root
-  		draw_beachline root.left, c
-  		# puts "#{root.name}" if (root.name)
-  		if (root.class == Arc)
-  			# debugger if root.name == "A4"
-  			draw_parabola Coord.new((root.left_point) ? root.left_point.value.x : -10, @@sweepline), Coord.new((root.right_point) ? root.right_point.value.x : 510, @@sweepline), root.value.center, c
-  			c.stroke_width 1
-  			c.text root.value.center.x, root.value.center.y - 20, root.name
-  		elsif (root.class == Breakpoint)
-  			draw_point root.value, c
-  			c.stroke_width 1
-  			c.text root.value.x, root.value.y - 20, root.name
-  		end
-  		draw_beachline root.right, c
-	end
-
 	def inorder root
 		# debugger
 		return unless root
@@ -545,7 +568,7 @@ class MVector
 
 end
 
-def generate_vor sites = [Site.new(200,50), Site.new(100,100), Site.new(400,200), Site.new(300,350)]
+def generate_vor sites = [Site.new(0,13), Site.new(15,22), Site.new(22,55), Site.new(34,80), Site.new(24,80)]
 	
 	eq = EventQueue.new
 	t = Tree.new
@@ -575,6 +598,6 @@ def generate_vor sites = [Site.new(200,50), Site.new(100,100), Site.new(400,200)
 	@@sweepline = 500
 	t.finish_edges
 	
-	t
+	sites
 	
 end
