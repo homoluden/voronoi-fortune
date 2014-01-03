@@ -1,7 +1,4 @@
-require 'rubygems'
-require 'rmagick'
 require 'matrix'
-require 'ruby-debug'
 
 @@sweepline = 0
 
@@ -49,8 +46,7 @@ end
 
 class Site
 	attr_accessor :center, :halfedge, :a, :b, :c
-	@@canvas = Magick::Image.new(500, 500, Magick::HatchFill.new('white','lightcyan2'))
-
+	
 	def initialize center
 		@center = center;
 	end
@@ -67,43 +63,6 @@ class Site
 		@center.y
 	end
 
-	def draw
-		g = Magick::Draw.new
-		g.stroke '#FF0000'
-		g.stroke_width 3
-		g.fill 'transparent'
-
-		if (@halfedge)
-			he = @halfedge
-			path = "M#{he.vertex.x}, #{he.vertex.y} "
-			he = he.next
-			while he != @halfedge
-				path += "L#{he.vertex.x}, #{he.vertex.y} "
-				he = he.next
-			end
-			path += "z"
-			# @halfedge.vertex.x, @halfedge.vertex.y, @halfedge.next.vertex.x, @halfedge.next.vertex.y, @halfedge.next.next.vertex.x, @halfedge.next.next.vertex.y, @halfedge.next.next.next.vertex.x, @halfedge.next.next.next.vertex.y
-			g.path path
-		end
-
-		g.stroke '#000000'
-		g.stroke_width 1
-
-		g.circle @center.x, @center.y, @center.x - 3, @center.y
-
-		g.stroke '#0000FF'
-		if (@@sweepline > @center.y)
-			Site.draw_parabola @center, @@sweepline
-			self.find_parabola
-		end
-
-		g.draw @@canvas
-	end
-
-	def Site.save image
-		@@canvas.write image
-	end
-
 	def to_s
 		"[#{center.x}, #{center.y}]"
 	end
@@ -112,27 +71,6 @@ class Site
 		@a = 1.0 / ( 2 * @center.y - 2 * @@sweepline )
 		@b = -1.0 * @center.x / ( @center.y - @@sweepline )
 		@c = 1.0 * ( @center.x ** 2 + @center.y ** 2 - @@sweepline ** 2 ) / ( 2 * @center.y - 2 * @@sweepline )
-	end
-
-	def Site.canvas
-		@@canvas
-	end
-
-	def Site.clear_canvas
-		@@canvas = Magick::Image.new(500, 500, Magick::HatchFill.new('white','lightcyan2'))
-	end
-
-	def Site.draw_parabola point, sweepline
-		d = Magick::Draw.new
-		d.stroke '#FF0000'
-		d.stroke_width 2
-		d.fill 'transparent'
-		alpha = Math.sqrt sweepline ** 2 - point.y ** 2
-		a = Coord.new point.x - alpha, 0
-		b = Coord.new point.x, point.y + sweepline
-		c = Coord.new point.x + alpha, 0
-		d.path "M#{a.x},#{a.y} Q#{b.x},#{b.y} #{c.x},#{c.y}"
-		d.draw @@canvas
 	end
 
 	def Site.find_intersection s1, s2
@@ -480,9 +418,9 @@ class Tree
 				if (i.next)
 					begin
 						i = i.next
-					end while i
+					end while i.next
 				end
-				debugger if i == root.halfedge
+				#debugger if i == root.halfedge
 				i.next = root.halfedge
 			else
 				# debugger
@@ -493,9 +431,9 @@ class Tree
 				if (i.next)
 					begin
 						i = i.next
-					end while i
+					end while i.next
 				end
-				debugger if i == root.halfedge
+				#debugger if i == root.halfedge
 				i.next = root.halfedge
 			else
 				# debugger
@@ -561,8 +499,6 @@ class Tree
 			ll = c.each.collect {|s| s.name}
 			ll.sort!
 			if (c[0].name == c[2].name || already_added_events.index(ll) || @@last_added == c[1].name)
-				# debugger
-				# debugger if (a[0].name == "A1")
 				a.delete_at 0
 				next
 			end
@@ -579,14 +515,6 @@ class Tree
 			x0 = - x[0, 0].to_f / 2
 			y0 = - x[1, 0].to_f / 2
 			r = Math.sqrt( x[0, 0].to_f ** 2 + x[1, 0].to_f ** 2 - 4 * x[2, 0].to_f ) / 2
-			# d = Magick::Draw.new
-			# d.stroke 'blue'
-			# d.stroke_width 3
-			# d.stroke_dasharray 10, 10
-			# d.fill 'transparent'
-			# d.circle x0, y0, x0, y0 + r
-			# d.draw Site.canvas
-			# debugger if (a[0].name == "A1")
 			a.delete_at 0
 			eq.add_event CircleEvent.new c[0], c[1], c[2], Coord.new(x0, y0 + r), Coord.new(x0, y0) if (@@sweepline < y0 + r - 1e-8)
 			already_added_events << ll
@@ -617,46 +545,8 @@ class MVector
 
 end
 
-def draw_point a, c
-	c.stroke "black"
-	c.stroke_width 1
-	c.circle a.x, a.y, a.x - 5, a.y
-end
-
-def draw_parabola a, b, c, dr # a, b – directrix points, c – focus, dr – Magick::Draw
-	# debugger
-	ab = MVector.new a, b
-	ac = MVector.new a, c
-	bc = MVector.new b, c
-
-	n = ( ac.x ** 2 + ac.y ** 2 ) / ( 2.0 * ( ab.x * ac.y - ab.y * ac.x ) )
-	d = Coord.new a.x - ab.y * n, a.y + ab.x * n
-
-	n = ( bc.x ** 2 + bc.y ** 2 ) / ( 2.0 * ( ab.x * bc.y - ab.y * bc.x ) )
-	e = Coord.new b.x - ab.y * n, b.y + ab.x * n
-
-	f = Coord.new 0.5 * ( a.x + c.x ), 0.5 * ( a.y + c.y )
-	g = Coord.new 0.5 * ( b.x + c.x ), 0.5 * ( b.y + c.y )
-
-	n = ( ( g.x - f.x ) * ac.x + ( g.y - f.y ) * ac.y ) / ( bc.y * ac.x - bc.x * ac.y )
-	h = Coord.new g.x - bc.y * n, g.y + bc.x * n
-
-	dr.fill "black"
-	dr.stroke "black"
-	dr.stroke_width 1
-
-	draw_point c, dr
-
-	dr.fill "transparent"
-	dr.stroke "red"
-	dr.stroke_width 3
-
-	dr.path "M#{d.x},#{d.y} Q#{h.x},#{h.y} #{e.x},#{e.y}"
-end
-
-def main i=1
-	# sites = [Site.new(200, 50), Site.new(350, 150), Site.new(250, 300)]
-	sites = [Site.new(200,50), Site.new(100,100), Site.new(400,200), Site.new(300,350)]
+def generate_vor sites = [Site.new(200,50), Site.new(100,100), Site.new(400,200), Site.new(300,350)]
+	
 	eq = EventQueue.new
 	t = Tree.new
 	sites.each do |s|
@@ -684,29 +574,7 @@ def main i=1
 	end while eq.current
 	@@sweepline = 500
 	t.finish_edges
-	d = Magick::Draw.new
-	# debugger 
-	t.draw_beachline t.root, d
-	d.path "M0,#{@@sweepline} h500"
-	sites.each do |s|
-		# debugger
-		if (s.halfedge)
-			debugger
-			l = s.halfedge
-			d.path "M#{s.halfedge.vertex.x},#{s.halfedge.vertex.y} L#{s.halfedge.end.x},#{s.halfedge.end.y}"
-			while l.next
-				l = l.next
-				debugger if l == l.next
-				d.path "M#{l.vertex.x},#{l.vertex.y} L#{l.end.x},#{l.end.y}"
-				puts "M#{l.vertex.x},#{l.vertex.y} L#{l.end.x},#{l.end.y}"
-			end
-		end
-	end
-	d.draw Site.canvas
-	Site.save "jpeg:image1"
-	`open image1`
+	
+	t
+	
 end
-
-
-# (130..300).each {|i| main i}
-main
